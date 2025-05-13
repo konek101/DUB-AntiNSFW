@@ -23,23 +23,35 @@ function jsonReviver(key, value) {
 }
 
 function isLinkToImage(url) {
+    if (!url.includes('https://') && !url.includes('http://')) {
+        return false;
+    }
     url = url.toLowerCase();
-    return url.includes('jpg') || url.includes('png') || url.includes('gif') || url.includes('webp') || url.includes('bmp') || url.includes('tiff') || url.includes('svg');
+    return url.includes('.jpg') || url.includes('png') || url.includes('gif') || url.includes('webp') || url.includes('bmp') || url.includes('tiff') || url.includes('svg');
 }
 
 function isLinkToVideo(url) {
+    if (!url.includes('https://') && !url.includes('http://')) {
+        return false;
+    }
     url = url.toLowerCase();
-    return url.includes('mp4') || url.includes('webm') || url.includes('mov') || url.includes('avi') || url.includes('wmv') || url.includes('mkv') || url.includes('flv');
+    return url.includes('.mp4') || url.includes('webm') || url.includes('mov') || url.includes('avi') || url.includes('wmv') || url.includes('mkv') || url.includes('flv');
 }
 
 function isLinkToAudio(url) {
+    if (!url.includes('https://') && !url.includes('http://')) {
+        return false;
+    }
     url = url.toLowerCase();
-    return url.includes('mp3') || url.includes('wav') || url.includes('ogg') || url.includes('flac') || url.includes('m4a');
+    return url.includes('.mp3') || url.includes('wav') || url.includes('ogg') || url.includes('flac') || url.includes('m4a');
 }
 
 function isLinkToGif(url) {
+    if (!url.includes('https://') && !url.includes('http://')) {
+        return false;
+    }
     url = url.toLowerCase();
-    return url.includes('gif');
+    return url.includes('.gif');
 }
 
 // Load data from db.json on startup
@@ -69,21 +81,15 @@ if (fs.existsSync(dbFilePath)) {
 
 // Event: Bot is ready
 client.on('ready', () => {
-    console.log('Bot is ready!');
-    client.change_status("online").then((response) => {
-    });    
+    console.log('Bot is ready!'); 
 });
 
-setInterval(() => {
-    client.change_status("online").then((response) => {
-    });
-}, 550000);
 
 let sent = false;
 
 function blacklistedMessageSent(message) {
     if (sent) {return;}
-    client.send(message.channel_id, { content: 'This message includes a blacklisted format.', reply: message.id });
+    client.send(message.channel_id, { content: blacklistedResponse, reply: message.id });
     sent = true;
 }
 
@@ -583,12 +589,7 @@ client.on('message', (message) => {
     }
 });
 
-process.on('SIGINT', function() {
-    client.change_status("invisible").then((response) => {
-        process.exit();
-    });  
-    
-});
+
 
 // Log in the bot
 client.login(process.env.TOKEN);
