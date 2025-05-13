@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "discord-user-bots": "^2.0.3",
+    "dotenv": "^16.5.0"
+  }
+}
