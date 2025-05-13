@@ -8,7 +8,7 @@ let blacklist = [];
 let admins = [506277152753319956n];
 let currentChannel = 0n;
 
-let blacklistedResponse = "This message contains a blacklisted format.";
+let blacklistedResponse = "This message includes a blacklisted format.";
 // Custom replacer for JSON.stringify to handle BigInt
 function jsonReplacer(key, value) {
     return typeof value === 'bigint' ? value.toString() : value;
@@ -24,22 +24,22 @@ function jsonReviver(key, value) {
 
 function isLinkToImage(url) {
     url = url.toLowerCase();
-    return url.contains('jpg') || url.contains('png') || url.contains('gif') || url.contains('webp') || url.contains('bmp') || url.contains('tiff') || url.contains('svg');
+    return url.includes('jpg') || url.includes('png') || url.includes('gif') || url.includes('webp') || url.includes('bmp') || url.includes('tiff') || url.includes('svg');
 }
 
 function isLinkToVideo(url) {
     url = url.toLowerCase();
-    return url.contains('mp4') || url.contains('webm') || url.contains('mov') || url.contains('avi') || url.contains('wmv') || url.contains('mkv') || url.contains('flv');
+    return url.includes('mp4') || url.includes('webm') || url.includes('mov') || url.includes('avi') || url.includes('wmv') || url.includes('mkv') || url.includes('flv');
 }
 
 function isLinkToAudio(url) {
     url = url.toLowerCase();
-    return url.contains('mp3') || url.contains('wav') || url.contains('ogg') || url.contains('flac') || url.contains('m4a');
+    return url.includes('mp3') || url.includes('wav') || url.includes('ogg') || url.includes('flac') || url.includes('m4a');
 }
 
 function isLinkToGif(url) {
     url = url.toLowerCase();
-    return url.contains('gif');
+    return url.includes('gif');
 }
 
 // Load data from db.json on startup
@@ -79,19 +79,24 @@ setInterval(() => {
     });
 }, 550000);
 
+let sent = false;
+
 function blacklistedMessageSent(message) {
-    client.send(message.channel_id, { content: 'This message contains a blacklisted format.', reply: message.id });
+    if (sent) {return;}
+    client.send(message.channel_id, { content: 'This message includes a blacklisted format.', reply: message.id });
+    sent = true;
 }
 
 // Message event for main functionality
 client.on('message', (message) => {
+    sent = false;
     // Check if message is sent in the current channel
-    if (message.channel_id !== currentChannel) {
+    if (BigInt(message.channel_id) !== currentChannel) {
         return;
     }
     // Check if message is sent by a blacklisted user
     if (blacklist.includes(BigInt(message.author.id))) {
-        // Check if the message contains a blacklisted format
+        // Check if the message includes a blacklisted format
         const attachments = message.attachments;
         if (attachments.length > 0) {
             attachments.forEach(attachment => {
@@ -108,6 +113,7 @@ client.on('message', (message) => {
             });
         }
         if (message.embeds.length > 0) {
+            
             message.embeds.forEach(embed => {
                 const embedFormat = embed.type;
                 blacklistedFormats.forEach(format => {
@@ -125,7 +131,7 @@ client.on('message', (message) => {
                 });
             });
         }
-        // Check if the message contains a link to a blacklisted format
+        // Check if the message includes a link to a blacklisted format
         if (message.content.length > 0) {
             const messageContent = message.content.toLowerCase();
             blacklistedFormats.forEach(format => {
@@ -579,8 +585,9 @@ client.on('message', (message) => {
 
 process.on('SIGINT', function() {
     client.change_status("invisible").then((response) => {
+        process.exit();
     });  
-    process.exit();
+    
 });
 
 // Log in the bot
