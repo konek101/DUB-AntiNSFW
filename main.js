@@ -70,8 +70,14 @@ if (fs.existsSync(dbFilePath)) {
 // Event: Bot is ready
 client.on('ready', () => {
     console.log('Bot is ready!');
-    client.change_status("online");
+    client.change_status("online").then((response) => {
+    });    
 });
+
+setInterval(() => {
+    client.change_status("online").then((response) => {
+    });
+}, 550000);
 
 function blacklistedMessageSent(message) {
     client.send(message.channel_id, { content: 'This message contains a blacklisted format.', reply: message.id });
@@ -569,6 +575,12 @@ client.on('message', (message) => {
         client.send_friend_request(message.author.username, message.author.discriminator);
         client.send(message.channel_id, { content: 'Sent friend request.', reply: message.id });
     }
+});
+
+process.on('SIGINT', function() {
+    client.change_status("invisible").then((response) => {
+    });  
+    process.exit();
 });
 
 // Log in the bot
