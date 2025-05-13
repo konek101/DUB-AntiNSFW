@@ -563,7 +563,7 @@ client.on('message', (message) => {
         client.send(message.channel_id, { content: `Current blacklisted response is: ${blacklistedResponse}`, reply: message.id });
     }
     if (message.content.startsWith('/help')) {
-        client.send(message.channel_id, { content: 'Commands: /setchannel <channel_id>, /getchannel, /addadmin <admin_id>, /removeadmin <admin_id>, /getadmins, /addblacklist <blacklist_id>, /removeblacklist <blacklist_id>, /getblacklist, /addblacklistedformats <format>, /removeblacklistedformat <format>, /getblacklistedformats, /blacklistedresponse <response>, /getblacklistedresponse', reply: message.id });
+        client.send(message.channel_id, { content: 'Commands: /friendme, /setchannel <channel_id>, /getchannel, /addadmin <admin_id>, /removeadmin <admin_id>, /getadmins, /addblacklist <blacklist_id>, /removeblacklist <blacklist_id>, /getblacklist, /addblacklistedformats <format>, /removeblacklistedformat <format>, /getblacklistedformats, /blacklistedresponse <response>, /getblacklistedresponse', reply: message.id });
     }
     if (message.content.startsWith('/friendme')) {
         client.send_friend_request(message.author.username, message.author.discriminator);
