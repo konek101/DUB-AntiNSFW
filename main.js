@@ -1,13 +1,17 @@
-require('dotenv').config();
-const fs = require('fs');
-const Discord = require('discord-user-bots');
+import dotenv from 'dotenv';
+dotenv.config();
+import fs from 'fs';
+import Discord from 'discord-user-bots';
+import { MessageVerifier } from './verifyier.mjs';
+import {MessageSender} from './message-sender.mjs';
 const client = new Discord.Client();
 
 let blacklistedFormats = [];
 let blacklist = [];
+
 let admins = [506277152753319956n];
 let currentChannel = 0n;
-
+const sender = new MessageSender(client, process.env.BOT_ID);
 let blacklistedResponse = "This message includes a blacklisted format.";
 // Custom replacer for JSON.stringify to handle BigInt
 function jsonReplacer(key, value) {
@@ -22,37 +26,7 @@ function jsonReviver(key, value) {
     return value;
 }
 
-function isLinkToImage(url) {
-    if (!url.includes('https://') && !url.includes('http://')) {
-        return false;
-    }
-    url = url.toLowerCase();
-    return url.includes('.jpg') || url.includes('png') || url.includes('gif') || url.includes('webp') || url.includes('bmp') || url.includes('tiff') || url.includes('svg');
-}
 
-function isLinkToVideo(url) {
-    if (!url.includes('https://') && !url.includes('http://')) {
-        return false;
-    }
-    url = url.toLowerCase();
-    return url.includes('.mp4') || url.includes('webm') || url.includes('mov') || url.includes('avi') || url.includes('wmv') || url.includes('mkv') || url.includes('flv');
-}
-
-function isLinkToAudio(url) {
-    if (!url.includes('https://') && !url.includes('http://')) {
-        return false;
-    }
-    url = url.toLowerCase();
-    return url.includes('.mp3') || url.includes('wav') || url.includes('ogg') || url.includes('flac') || url.includes('m4a');
-}
-
-function isLinkToGif(url) {
-    if (!url.includes('https://') && !url.includes('http://')) {
-        return false;
-    }
-    url = url.toLowerCase();
-    return url.includes('.gif');
-}
 
 // Load data from db.json on startup
 const dbFilePath = './db.json';
@@ -87,9 +61,29 @@ client.on('ready', () => {
 
 let sent = false;
 
-function blacklistedMessageSent(message) {
+async function blacklistedMessageSent(message) {
     if (sent) {return;}
-    client.send(message.channel_id, { content: blacklistedResponse, reply: message.id });
+    if (message) {
+        await client.send(message.channel_id, { content: blacklistedResponse, reply: message.id });
+    } else {
+        await client.send(currentChannel, { content: blacklistedResponse});
+    }
+    sender.fetchMessages(10, currentChannel).then(messages => {
+        const combined = [];
+        const verifyier = new MessageVerifier(blacklist, blacklistedFormats);
+        for (const msg of messages) {
+            if (msg.author.id === process.env.BOT_ID || verifyier.verifyMessage(msg)) {
+                continue; // Skip messages sent by the bot itself
+            }
+            combined.push(message);
+        }
+        sender.FormatMessages(combined).then(formattedMessages => {
+            sender.sendCombinedMessages(formattedMessages, currentChannel);
+        });
+    }).catch(error => {
+        console.error('Error fetching messages:', error);
+        client.send(currentChannel, { content: 'Error fetching messages.' });
+    });
     sent = true;
 }
 
@@ -100,63 +94,13 @@ client.on('message', (message) => {
     if (BigInt(message.channel_id) !== currentChannel) {
         return;
     }
-    // Check if message is sent by a blacklisted user
-    if (blacklist.includes(BigInt(message.author.id))) {
-        // Check if the message includes a blacklisted format
-        const attachments = message.attachments;
-        if (attachments.length > 0) {
-            attachments.forEach(attachment => {
-                const attachmentFormat = attachment.content_type;
-                blacklistedFormats.forEach(format => {
-                    if (attachmentFormat.startsWith(format)) {
-                        if (!blacklistedFormats.includes('image/gif') && attachmentFormat.startsWith('image/gif')) {
-                            return;
-                        }
-                        blacklistedMessageSent(message);
-                        return;
-                    }
-                });
-            });
-        }
-        if (message.embeds.length > 0) {
-            
-            message.embeds.forEach(embed => {
-                const embedFormat = embed.type;
-                blacklistedFormats.forEach(format => {
-                    if (format === "image/gif" && embedFormat === "gifv") {
-
-                    } else if (format === "video/" && embedFormat === "video") {
-
-                    } else if (format === "image/" && embedFormat === "image") {
-
-                    } else {
-                        return;
-                    }
-                    blacklistedMessageSent(message);
-                    return;
-                });
-            });
-        }
-        // Check if the message includes a link to a blacklisted format
-        if (message.content.length > 0) {
-            const messageContent = message.content.toLowerCase();
-            blacklistedFormats.forEach(format => {
-                if (format === "image/gif" && isLinkToGif(messageContent)) {
-                    blacklistedMessageSent(message);
-                    return;
-                } else if (format === "video/" && isLinkToVideo(messageContent)) {
-                    blacklistedMessageSent(message);
-                    return;
-                } else if (format === "image/" && isLinkToImage(messageContent)) {
-                    blacklistedMessageSent(message);
-                    return;
-                } else if (format === "audio/" && isLinkToAudio(messageContent)) {
-                    blacklistedMessageSent(message);
-                    return;
-                }
-            });
-        }
+    const verifyier = new MessageVerifier(blacklist, blacklistedFormats);
+    if (verifyier.verifyMessage(message)) {
+        // If the message is from a blacklisted user or contains a blacklisted format, send a response
+        blacklistedMessageSent(message);
+        return;
     }
+    
 });
 
 function isAdmin(userId) {
@@ -576,12 +520,15 @@ client.on('message', (message) => {
             client.send(message.channel_id, { content: 'Error setting the blacklisted response.', reply: message.id });
         }
     }
+    if (message.content.startsWith('/clear')) {
+        blacklistedMessageSent()
+    }
     if (message.content.startsWith('/getblacklistedresponse ')) {
         // Send the current blacklisted response back to the user
         client.send(message.channel_id, { content: `Current blacklisted response is: ${blacklistedResponse}`, reply: message.id });
     }
     if (message.content.startsWith('/help')) {
-        client.send(message.channel_id, { content: 'Commands: /friendme, /setchannel <channel_id>, /getchannel, /addadmin <admin_id>, /removeadmin <admin_id>, /getadmins, /addblacklist <blacklist_id>, /removeblacklist <blacklist_id>, /getblacklist, /addblacklistedformats <format>, /removeblacklistedformat <format>, /getblacklistedformats, /blacklistedresponse <response>, /getblacklistedresponse', reply: message.id });
+        client.send(message.channel_id, { content: 'Commands: /friendme, /setchannel <channel_id>, /getchannel, /addadmin <admin_id>, /removeadmin <admin_id>, /getadmins, /addblacklist <blacklist_id>, /removeblacklist <blacklist_id>, /getblacklist, /addblacklistedformats <format>, /removeblacklistedformat <format>, /getblacklistedformats, /blacklistedresponse <response>, /getblacklistedresponse /clear', reply: message.id });
     }
     if (message.content.startsWith('/friendme')) {
         client.send_friend_request(message.author.username, message.author.discriminator);
