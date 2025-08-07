@@ -68,14 +68,14 @@ async function blacklistedMessageSent(message) {
     } else {
         await client.send(currentChannel, { content: blacklistedResponse});
     }
-    sender.fetchMessages(10, currentChannel).then(messages => {
+    sender.fetchMessages(30, currentChannel).then(messages => {
         const combined = [];
         const verifyier = new MessageVerifier(blacklist, blacklistedFormats);
         for (const msg of messages) {
             if (msg.author.id === process.env.BOT_ID || verifyier.verifyMessage(msg)) {
                 continue; // Skip messages sent by the bot itself
             }
-            combined.push(message);
+            combined.push(msg);
         }
         sender.FormatMessages(combined).then(formattedMessages => {
             sender.sendCombinedMessages(formattedMessages, currentChannel);

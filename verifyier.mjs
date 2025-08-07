@@ -39,19 +39,20 @@ export class MessageVerifier {
     }
 
     verifyMessage(message) {
+        let ret = false;
         // Check if message is sent by a blacklisted user
-        if (blacklist.includes(BigInt(message.author.id))) {
-            // Check if the message includes a blacklisted format
+        if (this.blacklist.includes(BigInt(message.author.id))) {
+            // Check if the message includes a this.blacklisted format
             const attachments = message.attachments;
             if (attachments.length > 0) {
                 attachments.forEach(attachment => {
                     const attachmentFormat = attachment.content_type;
-                    blacklistedFormats.forEach(format => {
+                    this.blacklistedFormats.forEach(format => {
                         if (attachmentFormat.startsWith(format)) {
-                            if (!blacklistedFormats.includes('image/gif') && attachmentFormat.startsWith('image/gif')) {
+                            if (!this.blacklistedFormats.includes('image/gif') && attachmentFormat.startsWith('image/gif')) {
                                 
                             }
-                            return true;
+                            ret = true;
                             
                         }
                     });
@@ -61,37 +62,39 @@ export class MessageVerifier {
                 
                 message.embeds.forEach(embed => {
                     const embedFormat = embed.type;
-                    blacklistedFormats.forEach(format => {
+                    this.blacklistedFormats.forEach(format => {
                         if (format === "image/gif" && embedFormat === "gifv") {
-                            return true;
+                            ret = true;
                         } else if (format === "video/" && embedFormat === "video") {
-                            return true;
+                            ret = true;
                         } else if (format === "image/" && embedFormat === "image") {
-                            return true;
+                            ret = true;
                         }
 
                     });
                 });
             }
-            // Check if the message includes a link to a blacklisted format
+            // Check if the message includes a link to a this.blacklisted format
             if (message.content.length > 0) {
                 const messageContent = message.content.toLowerCase();
-                blacklistedFormats.forEach(format => {
-                    if (format === "image/gif" && isLinkToGif(messageContent)) {
-                        return true;
+                this.blacklistedFormats.forEach(format => {
+                    if (format === "image/gif" && this.isLinkToGif(messageContent)) {
+                        ret = true;
                         
-                    } else if (format === "video/" && isLinkToVideo(messageContent)) {
-                        return true;
+                    } else if (format === "video/" && this.isLinkToVideo(messageContent)) {
+                        ret = true;
                         
-                    } else if (format === "image/" && isLinkToImage(messageContent)) {
-                        return true;
+                    } else if (format === "image/" && this.isLinkToImage(messageContent)) {
+                        ret = true;
                         
-                    } else if (format === "audio/" && isLinkToAudio(messageContent)) {
-                        return true;
+                    } else if (format === "audio/" && this.isLinkToAudio(messageContent)) {
+                        ret = true;
                         
                     }
                 });
             }
+            return ret; // Return true if any condition matched
         }
+        return false; // If no conditions matched, return false
     }
 }

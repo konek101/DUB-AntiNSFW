@@ -1,9 +1,9 @@
 export class MessageSender {
     client;
-    clientID;
+    botID;
     constructor(client, clientID) {
         this.client = client;
-        this.clientID = clientID;
+        this.botID = clientID;
     }
     /**
     * Fetches the latest `count` messages from a Discord channel and formats them.
@@ -12,7 +12,7 @@ export class MessageSender {
     * @returns {Promise<messages[]>}
     */
     async fetchMessages(count, channelId) {
-        const messages = await client.fetch_messages(count, channelId);
+        const messages = await this.client.fetch_messages(count, channelId);
         return messages.reverse(); // Reverse to get the oldest messages first
     }
 
@@ -58,7 +58,7 @@ export class MessageSender {
                 }
             }
             const displayName = msg.author?.global_name || 'Unknown';
-            if (msg.author?.id === botID) {
+            if (msg.author?.id === this.botID) {
                 // Skip messages from the bot itself
                 continue;
             }
@@ -113,10 +113,10 @@ export class MessageSender {
         if (buffer) combined.push({ content: buffer, attachments: [] });
         console.log(combined);
         for (const msg of combined) {
-            await client.send(channelId, {content: msg.content});
+            await this.client.send(channelId, {content: msg.content});
             if (msg.attachments.length > 0) {
                 for (const attachment of msg.attachments) {
-                    await client.send(channelId, {content: attachment});
+                    await this.client.send(channelId, {content: attachment});
                 }
             }
         }
